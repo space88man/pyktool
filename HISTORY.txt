@@ -1,0 +1,4 @@
+
+
+keytool  -providerpath ../../jars/bcprov-jdk15on-159.jar -list -storepass changeit -storetype bcpkcs12 -keystore cacerts.p12 --providerclass org.bouncycastle.jce.provider.BouncyCastleProvider
+

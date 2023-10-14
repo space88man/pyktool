@@ -1,0 +1,245 @@
+from pyktool import pemks, pkcs8
+from cryptography.hazmat.primitives import serialization
+from asn1crypto import keys
+import pytest
+
+e_private_key = b'''-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIFHTBXBgkqhkiG9w0BBQ0wSjApBgkqhkiG9w0BBQwwHAQI+oBlfD97rHUCAggA
+MAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAECBBBfyAj3f8dEPH9uWJMrwo/rBIIE
+wDIisqcIsQ2qgvBdy+rT2trIWtu/gESsjrSaCi4YMnBEuTITyPYVXLwEaY4Mulm6
+msTnZlcD77IHD+iCkvdhXmD15xtSQpRrONNZAk49y6j5NOL7ff4PgD6naL3twwJl
+Dh5gKeIoGLmW6THV2K9H+0o6sQvN1VRzX8xhdhzXVIh0KuaaDXTlQA2vJU5l5O5Q
+BMfdn688mlxO7oetCjYW7OaAk9oP3lGwIzLePmEPOiYRZeCzXZ4L12iYJoLM5Q5s
+kM8XNnfM2PcOxJ7D6HxSPSz4Q+5ISPgnJIenySb6awz081gy9uaOtgNKkJ/VHWpl
+4EvEo59lO/0ERwhdlIB6kRmozDMlxFTbiWUHmnSCGkEKJw57Qt46e7pD9ajYYQSU
+1M5lAchOAcBasBWjYKF4eWjJciijCPHotx+KcbikJJrXtnaItCRmaTkIREmprnFZ
+C7LPfA1L7GIN8pAeH6VGzXOP0i7XoP5soE4SYAKHHP2+k2DX0hxA3peeAu1XgKk+
+4D+vWAzfvpLkfj2VPlMGVA+Y+tyMtayrxDJDalZYu4Z/8zFT3IwCpTiq8AedGK/l
+4Lq2fsHWUavw5S+spbFS4fUoqT/B1pG6ZSGDFoWM5hOK/CFPd1RGAqo+guJuX1VK
+YPPoSmXELYk9D5/PD8/4DQXnZxtKifOwQ/6rBlXoL+Izyd6unR5hxfBsfHThUXh+
+XykEYXtZlc2DvjjKbqJu25+OexFuHMsFNn3jdCbkRxTi1F1/W8OBk8USNsRtYaZI
+tSZhB91kZMGBQlENIFGoOI49tjZ6qEj9CnxfZJNVssueDivVHI3bpRLzbMrBcKx5
+1XBRk6KxaQgSyUnNUIcP9bR3DhBV+zHL2xjsPzAuAwkoIeS1rEfYTwSxbVF+c9EB
+nS4Ke5wvH0guQacLX8CLfGjzEBOkYclZMVnxafI79KrclDFY10mCDV0BzeYbKji6
+8ifrN5UNrndnkSj5k0Oj+eQU9K4OdBY2jI1JoGt/2ywiRJMToHZ0/mpgWQm4+HTP
+LFZFdskUYLCvXpDhLqXiw9OajIEebDwjN8oH0LCV4P3virhHf9mPXwVqEhvtFzQ7
+imFJL2VbASHE8XmxVhlcZRS4C6Mw5Mv2Fu1PYUC6ZaP8dMyq8n5NDRdcGZnHjMrj
+7nDc74YMo7BvqukDNEUVNxcMje0w2VKn6HvGXwERLRdVxAas0rD+fBp/yafu8uC5
+aWTbz/dw1Qp7DiJZdQVQhDKc1XeAEjwy2WDzqXNF5porNhXirIMhBDbo+iMhzLSu
+sdjGdnqV0goIoN63gML8HTqccOQKF9XJsbDS+CwOGmLDPP7xQdOrWOIz534dpqtB
+Zjg++9+5iP+/T3Qm6zG9ypIo5oVEESIkjQ4x1JVGFdSawr0jLu6ciQ6YUy3yPZ/7
+z9QSUC5zrtuR8J1QlMKoxvZ6nbA7ei4QoxgMjmkogM8aIbG/4T36qSTYsb61TUGW
+Yp2L4Jp0w0QjHiFZfAyeLCkPzB0dEn7B2bNxdLwegFpopNOs2BFAA3MGJfQIONjJ
+Ifw+u6J7f6k9/Apuu16e+SaAFcyC/fh6tX3M1eV9d36alWQzcEnRAisBlTzdrB0J
+8Ccdsa52OzlnKooBQbO+k90=
+-----END ENCRYPTED PRIVATE KEY-----
+'''
+
+ks_file = b'''privatekey,rootca
+-----BEGIN PRIVATE KEY-----
+MIIEuwIBADALBgkqhkiG9w0BAQoEggSnMIIEowIBAAKCAQEA0LmLlaR5Wgih3VQZ
+lggv/jN3xGfg/FjAjt/+DZfxNIBc/IwJA9mtubljrvwT3Z3az3fNIICcAbLFrAru
+ahHC+DzN5JMPJxk/vJE9hor0vLqu3Kfnb0MtrRXJAzryxvipdt9/3vfv0cEQpuZu
+LEZfD5Kz0Yr2NPsoirCTHQqxEI+2rMxSwBVURTqLG41YE3ryWahaiBLIgr4/Y9x/
+s/xyklvJg+YvTObDjIi/dGxycyRb5ST9PZBJFynGxDgSiPgp6HpacnnR2ZVkRH57
+Vc1REqmy0aDwjpF2comz98uMl1/m97FKOpMrjNtCfBp87tzniWA3lWMr57D8Sc9A
+BTwseQIDAQABAoIBAGrGYGe+6e1q+RL2UNh1e8e4oI4y7d9pr6fnYlml3tiSyf7P
+zFTR6JNYCWycu7Tlaeg0SxVTdXtQ7tpiBTDxwSGoSVOi/19rBTX7vtOzBhv+DDIJ
+GtXKMfWXbWtfno626kpLb2iqwV42O8SFoNq5bSvUSnTpd6YGzeiVB80ViRsE3SLj
+g1JaoB88DzYFwoi4jPV7YKWANnNG+wbx/IjWgRYS7TYZZcc8hR4s+tbp8EQW7Ghd
+XMcuber4M5wAHOtPIhrqbauXGcQbKLlX5mRoB4oUFJjcKKXif0z8NEUlrwl6Oo37
+PwpZ1gKjIUtUxEub4SfpJfKmfWUSrayKZj92uuECgYEA8PucMlv+PJA+YdZ/t/gl
+qqDIGNIGqRYz0swoAs/0wtBW1neCsx2pj+aRgooYs7X6dR53Smir3rJsj/Ybfhxv
+PKies6IK9HuWdGdHincwtVMB7A9z9t2W3eZXD+UqdPTNgCAz17Z4g5aeUXdNWj/q
+oucbTPbAmc0ti3eQsq5XBB0CgYEA3btSzpi7dWZtBBEywxNKutcYn6f1047UgUlO
+uJTmNiUKh2+auU/6uKET/KMveyF5fnHv/AJ0MMciSxG02OBTIQFFOHnOUWR+mi+V
+5wwqAn77hXrdv9d4XWOQQyXnDPtWNzE+VjSP8LKPcJxL4N/n/ADMg+dPUv0lNVvv
+BrR1Iw0CgYEAtCoYpBnc4KCi0vjP8dXHK2MbVlsneaDMy+uwejHJdyDV22/sOkeR
+7rDd1u+x+iGyh39ohivtWwigW50O/uD5VStnwzsB37jKSmqwtNfZhabyh+8hrs4K
+Lgo4yvx1Go2vWfw5ZivYu+COqq98GF4y6OnJomfUpOgeBeg1OTFYgw0CgYA4mykB
+uzYoO5TbM/TMnnE2j9EmeT+l2dHgi7GAJ+s5qW0ttE1Av+1XEzBCD/sAKUSWBkpp
+AMte5IeZuJR9xY8TXvqn91i3qLs1a66ORKm452gY5IwV/NEqrk9XBSceRk/1WSn7
+4gFZRoyeCBjK+P6FdELB7dxvaFcGb0jvYkSBRQKBgE8g9ClREveZmDrzfk5KYzhH
+oiWBzjCXf3xg9136Jt0KjcHGhe8Xe/IGqC431hw1t8TQAcJGcpgbp5NZ3aPit53v
+dgqCzlF6v06qJTzZhRy26mLqGi0qwWhcqCHfG6VL9qu3r6eLjXwESd/WkkUYP4bP
+PBo+mxrqEqK4urQiB5u0
+-----END PRIVATE KEY-----
+chain,rootca
+-----BEGIN CERTIFICATE-----
+MIIDiTCCAkCgAwIBAgIUDX0J7psWqvgBvk84/Ln9VQS4G3owPgYJKoZIhvcNAQEK
+MDGgDTALBglghkgBZQMEAgGhGjAYBgkqhkiG9w0BAQgwCwYJYIZIAWUDBAIBogQC
+AgDeMCQxEDAOBgNVBAoMB0V4YW1wbGUxEDAOBgNVBAMMB1Jvb3QgQ0EwHhcNMTkw
+NDI5MDE1MzM4WhcNMjkwNDI2MDE1MzM4WjAkMRAwDgYDVQQKDAdFeGFtcGxlMRAw
+DgYDVQQDDAdSb290IENBMIIBIDALBgkqhkiG9w0BAQoDggEPADCCAQoCggEBANC5
+i5WkeVoIod1UGZYIL/4zd8Rn4PxYwI7f/g2X8TSAXPyMCQPZrbm5Y678E92d2s93
+zSCAnAGyxawK7moRwvg8zeSTDycZP7yRPYaK9Ly6rtyn529DLa0VyQM68sb4qXbf
+f97379HBEKbmbixGXw+Ss9GK9jT7KIqwkx0KsRCPtqzMUsAVVEU6ixuNWBN68lmo
+WogSyIK+P2Pcf7P8cpJbyYPmL0zmw4yIv3RscnMkW+Uk/T2QSRcpxsQ4Eoj4Keh6
+WnJ50dmVZER+e1XNURKpstGg8I6RdnKJs/fLjJdf5vexSjqTK4zbQnwafO7c54lg
+N5VjK+ew/EnPQAU8LHkCAwEAAaNTMFEwHQYDVR0OBBYEFGGHpq47zrPRMEBgd6Q/
+Dhoq4+DeMB8GA1UdIwQYMBaAFGGHpq47zrPRMEBgd6Q/Dhoq4+DeMA8GA1UdEwEB
+/wQFMAMBAf8wPgYJKoZIhvcNAQEKMDGgDTALBglghkgBZQMEAgGhGjAYBgkqhkiG
+9w0BAQgwCwYJYIZIAWUDBAIBogQCAgDeA4IBAQBCowAewHbsH7xPtA8tNpwjnPb/
+sWhX93HeJJnpig4dro1P9yQa9fbic0VQJbV8L/cV2P1QxAlI5NkqdAp6yawdLHU8
+xJ9PvteczOYLKxStgS0hDpxa0UvrVCwMiNti4/Foe4xAeCqLD6InUfQHSWT61Cdh
+7NmkjagOwQSu3t2+3bM67UDh/TbfWG+x/NIHNZNWtPKlMmjsq7PQGxbJs1fV/BHl
++olWZ0nIa1dxfG7F/x3ETRGk4fJiDA3IESl0S81MC84lX5jYPunCkxiRpMCSO34n
+ouTX2Njw38EjGXQ9v6SaBMqNlvywF7VhJ7wKRW00bbJ6EPGxRk98INrQT7ba
+-----END CERTIFICATE-----
+cert,trootca
+-----BEGIN CERTIFICATE-----
+MIIDiTCCAkCgAwIBAgIUDX0J7psWqvgBvk84/Ln9VQS4G3owPgYJKoZIhvcNAQEK
+MDGgDTALBglghkgBZQMEAgGhGjAYBgkqhkiG9w0BAQgwCwYJYIZIAWUDBAIBogQC
+AgDeMCQxEDAOBgNVBAoMB0V4YW1wbGUxEDAOBgNVBAMMB1Jvb3QgQ0EwHhcNMTkw
+NDI5MDE1MzM4WhcNMjkwNDI2MDE1MzM4WjAkMRAwDgYDVQQKDAdFeGFtcGxlMRAw
+DgYDVQQDDAdSb290IENBMIIBIDALBgkqhkiG9w0BAQoDggEPADCCAQoCggEBANC5
+i5WkeVoIod1UGZYIL/4zd8Rn4PxYwI7f/g2X8TSAXPyMCQPZrbm5Y678E92d2s93
+zSCAnAGyxawK7moRwvg8zeSTDycZP7yRPYaK9Ly6rtyn529DLa0VyQM68sb4qXbf
+f97379HBEKbmbixGXw+Ss9GK9jT7KIqwkx0KsRCPtqzMUsAVVEU6ixuNWBN68lmo
+WogSyIK+P2Pcf7P8cpJbyYPmL0zmw4yIv3RscnMkW+Uk/T2QSRcpxsQ4Eoj4Keh6
+WnJ50dmVZER+e1XNURKpstGg8I6RdnKJs/fLjJdf5vexSjqTK4zbQnwafO7c54lg
+N5VjK+ew/EnPQAU8LHkCAwEAAaNTMFEwHQYDVR0OBBYEFGGHpq47zrPRMEBgd6Q/
+Dhoq4+DeMB8GA1UdIwQYMBaAFGGHpq47zrPRMEBgd6Q/Dhoq4+DeMA8GA1UdEwEB
+/wQFMAMBAf8wPgYJKoZIhvcNAQEKMDGgDTALBglghkgBZQMEAgGhGjAYBgkqhkiG
+9w0BAQgwCwYJYIZIAWUDBAIBogQCAgDeA4IBAQBCowAewHbsH7xPtA8tNpwjnPb/
+sWhX93HeJJnpig4dro1P9yQa9fbic0VQJbV8L/cV2P1QxAlI5NkqdAp6yawdLHU8
+xJ9PvteczOYLKxStgS0hDpxa0UvrVCwMiNti4/Foe4xAeCqLD6InUfQHSWT61Cdh
+7NmkjagOwQSu3t2+3bM67UDh/TbfWG+x/NIHNZNWtPKlMmjsq7PQGxbJs1fV/BHl
++olWZ0nIa1dxfG7F/x3ETRGk4fJiDA3IESl0S81MC84lX5jYPunCkxiRpMCSO34n
+ouTX2Njw38EjGXQ9v6SaBMqNlvywF7VhJ7wKRW00bbJ6EPGxRk98INrQT7ba
+-----END CERTIFICATE-----
+privatekey,eckeypair,0,20190430045420Z,EC:20190430045420Z
+-----BEGIN PRIVATE KEY-----
+MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDB0Xy56n72koxQaponZ
+riY1CBj74QsKvHqmoRm11Yz9lx6V7GDQ2Sb29rj8OsAINAyhZANiAAQQGh5wF19V
+ibK3n+ErPlFGjT/NV6MbmdYEpHa+DC1e+K4mbVu93It5Q41lbSZ61nSjIlBEI/xf
+ol1rqZCy1lnbqxuwVMHrT925sdfpQrR4XbWHn6TSji0erFpXzb7iWF8=
+-----END PRIVATE KEY-----
+chain,eckeypair,0
+-----BEGIN CERTIFICATE-----
+MIIBrzCCATagAwIBAgIURTzOYgcvzrGcNJQ/ZQEoYq9zEmswCgYIKoZIzj0EAwIw
+KDESMBAGA1UECgwJYm9vdHN0cmFwMRIwEAYDVQQDDAllY2tleXBhaXIwHhcNMTYw
+MTAxMDAwMDAwWhcNNDAwMTAxMDAwMDAwWjAoMRIwEAYDVQQKDAlib290c3RyYXAx
+EjAQBgNVBAMMCWVja2V5cGFpcjB2MBAGByqGSM49AgEGBSuBBAAiA2IABBAaHnAX
+X1WJsref4Ss+UUaNP81XoxuZ1gSkdr4MLV74riZtW73ci3lDjWVtJnrWdKMiUEQj
+/F+iXWupkLLWWdurG7BUwetP3bmx1+lCtHhdtYefpNKOLR6sWlfNvuJYX6MhMB8w
+HQYDVR0OBBYEFFZwP2qhfBLOZA5UEcepYR9xsTi2MAoGCCqGSM49BAMCA2cAMGQC
+MB1cBEnnsDLo08HZB1bv/F8aJwnYGVg0B7bvlF2/t95mcuDJnzDTg19Nal9kNgkL
+BwIwVgBr5PHbDsK6GRQ5mkcWn/XKgNuEGVP5Qr6LzLJ99sCBFYAEMi/IklnSk1Fp
+zK41
+-----END CERTIFICATE-----
+privatekey,rsakeypair,1,20190430045524Z,RSA:20190430045524Z
+-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDDl3GX1G5yeYYH
+Me7OUbBhhPGBQyWAU5szjWyyBgiW8UKQ+2yIpSIElTjcT950HDFHsbfuOwXlM/ba
+XIIcD310r1SCshM/CtLpGBKvu5bP45TKBOIP/hIdqS1LjE+RbSHMW4vnK61zX4i6
+f9v9k99UXRBdPoUaVt6csv4mxLAqb9kDZU1uHfGQgKDQgs+1bMGxWTCY4VY1G5t6
+CpyQb87ZBB6e+pcLXeg7RKpCdm6KmMBOkiJCPTuBkewsGB0Nt2FS5WU1Bcu9LR5w
+jGLaE3UR0eJ4nygDXbAy/69W/Mm5PZ08yDyAw1JsslwfcnVQXEkXLZY8hlhPqX3a
+RtQWOvnbAgMBAAECggEBAIRbbn49PgRvYhhqXNz3gLFtYnSDuNPvP96R/JU36gYi
++1XbHmYVwUByroi/75yJG3wVso8fF+0zzf+UjGNqxA37O+g5kzadH36nULXk7rh9
+nEldJpGF8EJsIn+2Un3p6O4+oRztfLHPW1pBfeBKed3AIHvI/A+H65sEsWIQxdng
+p5zaf6lcAzfgBwCKt31OSWplQVKqPclrDmiyfBH4xGtwcPh+AXxU/ljXR3Nu5AWr
+38d2NGgjGIeCr/YuXUsQDzT8ZUW5N6D8P42DPZzuY7gWcrZmEcakAHvRPCdWIMzD
+ozU39ZzzshJSAVZHQC4lG71lh6ysAo3IbEqo0r23ugECgYEA+r0znSTzLySiCMC6
+O2cDzHsa3BfckI4k1CvPWIHMyqF/W7JHsKm666/J42PRaEfcEpk0k54dXSN+97K7
+z5cDY0ZjfG5X2DJcYQRIOgGbqpxZXRNiQjzdKWv//ifSbZc31kD1iut3fom76aAR
+RGI3YoW3h0NLfbr6zGg9EZ0IhQECgYEAx7IHD/DlvclqYQkv8ghVmsiKfiKM1KOp
+vzVV9XC18pqmFUYkagrCY+OV+YSz9Hv3FL/jfTTdSq7YjwZjzdDz1WHO9qhz0MSm
+VTKqKa/2iBdDqhXwHi9XcwrlNWLZkZMJrH63h55OHQjG9ysvlJyJwbJueSBzCoEh
+pOs8FML3MtsCgYBsazdQMdP9hIeT5VIhsW+REYIRvTegQfZmz/K+QJH+5Eofqj0Z
+hKrQkphnfJfl0Xy1hg2X7vyfc2PJUz2mi5Ppb1xBR60wTMZpJOLeQie/ZA+4EVOh
+dJPk/1AX47w3qvV37Wq/AQYQbxoT8STGPvnX3h33nP+dhCZCEKinXxF6AQKBgQCi
+oYUI4Xpo5ujg3/eRGGKHLP1FHmQtJKCwnQJFYiZ7zqClwLsVNW/8o7NXQ1C/MloW
+JvRg2rXCBcVOLbkIPDzoMcC4tpWjlxOTXTChxLF1QeUUVst3+bwxb9UddkSUPvho
+58YWB8G7+ZL4Zs5YLGgwPF2l/dxS2LmKsxz6F5H0cwKBgQDeWGp7vQnPPYUNjN6U
+mbtYUZrWxtNPkVkQDJEf3RyoTH/kgw3f18k2oL5gbwheFoZOFRcC5Fq61e5mdMKC
+ejdsx0UcPmZGGHiBpaLAmNcXZm916BjsIba4DCDh0/jmDM7T8DGkVUVRRopblidP
+o+CmNrYHMQh+YmaTDjwDTAMMZQ==
+-----END PRIVATE KEY-----
+chain,rsakeypair,0
+-----BEGIN CERTIFICATE-----
+MIIDATCCAemgAwIBAgIUAKv/JvJOOWaeNz1bDnb2cg0yfXYwDQYJKoZIhvcNAQEL
+BQAwKTESMBAGA1UECgwJYm9vdHN0cmFwMRMwEQYDVQQDDApyc2FrZXlwYWlyMB4X
+DTE2MDEwMTAwMDAwMFoXDTQwMDEwMTAwMDAwMFowKTESMBAGA1UECgwJYm9vdHN0
+cmFwMRMwEQYDVQQDDApyc2FrZXlwYWlyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+MIIBCgKCAQEAw5dxl9RucnmGBzHuzlGwYYTxgUMlgFObM41ssgYIlvFCkPtsiKUi
+BJU43E/edBwxR7G37jsF5TP22lyCHA99dK9UgrITPwrS6RgSr7uWz+OUygTiD/4S
+HaktS4xPkW0hzFuL5yutc1+Iun/b/ZPfVF0QXT6FGlbenLL+JsSwKm/ZA2VNbh3x
+kICg0ILPtWzBsVkwmOFWNRubegqckG/O2QQenvqXC13oO0SqQnZuipjATpIiQj07
+gZHsLBgdDbdhUuVlNQXLvS0ecIxi2hN1EdHieJ8oA12wMv+vVvzJuT2dPMg8gMNS
+bLJcH3J1UFxJFy2WPIZYT6l92kbUFjr52wIDAQABoyEwHzAdBgNVHQ4EFgQUCpYh
+spVBpqNfJMbU116VQQ8Dj1IwDQYJKoZIhvcNAQELBQADggEBAJxBidMLLetoTUV/
+JOlJ3f68a8wGHy8FBMRjgpsfMNFps2FyVG1AzIHzvPNLp0980yMIJQEX52Ij+j6d
+PwJ+DZtxHAyKjGRKoXAI2D3LhtCu941wAshR815WaLhbmz0XR/2cISWFQRKixyi5
+zkKfJygRbk3KNMnwY8/WFcLrWlCPzYg1wAgOHLWgQb8hTsPYZ1bmQ68bPslycdnd
+3TWmq+/42vasCb4SoT6uEQ2EtwJQ30THEvdte8g+2iZKfBuhQB1MlrLw+caA9DVo
+qjdPogt+2crzUSH//WWibmocGwUvYdNrT1pZ/V1ut93Q1I4MceLMLhAtNd7CAY3E
+RUOIJH4=
+-----END CERTIFICATE-----
+'''
+
+
+def test_pkcs8():
+
+    der_dat = pkcs8.pkcs8_der_from_pem(e_private_key.decode('ascii'),
+                                       b'abcd1234')
+
+    print(der_dat)
+
+    pem_dat = pkcs8.pkcs8_der_from_pem(
+        e_private_key.decode('ascii'),
+        b'abcd1234',
+        serialization.Encoding.PEM,
+    )
+
+    print(pem_dat[1].decode('ascii'))
+
+    der_dat = pkcs8.pkcs8_der_from_pem(ks_file.decode('ascii'), b'abcd1234')
+
+    print(der_dat)
+
+    pem_dat = pkcs8.pkcs8_der_from_pem(
+        ks_file.decode('ascii'),
+        b'abcd1234',
+        serialization.Encoding.PEM,
+    )
+
+    print(pem_dat[1].decode('ascii'))
+
+
+def test_loading():
+    ks = pemks.PEMKS()
+
+    ks.load_s(ks_file, b'')
+
+    assert ks.private_key('rootca')
+
+    prv = keys.PrivateKeyInfo.load(ks.index['rootca'].pkey)
+
+    assert prv[1]['algorithm'].native == 'rsassa_pss'
+    assert prv[1]['parameters'].native is None
+
+    assert ks.key_type('rootca') == 'RSA'
+    assert ks.key_type('eckeypair') == 'EC'
+    assert ks.key_type('rsakeypair') == 'RSA'
+
+    ks.public_key('rootca')
+    ks.public_key('trootca')
+    ks.public_key('eckeypair')
+    ks.public_key('rsakeypair')
+
+
+def test_keytype():
+    ks = pemks.PEMKS()
+
+    ks.load_s(ks_file, b'')
+
+    assert pkcs8.keytype(ks.index['rootca']) == 'RSA'
+    assert pkcs8.keytype(ks.index['rsakeypair']) == 'RSA'
+    assert pkcs8.keytype(ks.index['eckeypair']) == 'EC'
+
+    with pytest.raises(AttributeError) as context:
+        pkcs8.keytype(ks.index['trootca'])
+
+    print(context)

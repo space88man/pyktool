@@ -1,0 +1,32 @@
+[tool.pdm]
+package-dir = "."
+
+[project]
+name = "pyktool"
+version = "23.10.1"
+description = "A Python project to inspect Java keystores"
+readme = "README.md"
+authors = [
+    {name = "S-P Chan", email = "shihping.chan@gmail.com"},
+]
+dependencies = [
+    "asn1crypto>=1.3.0",
+    "cryptography",
+    "pycryptodome",
+    "oscrypto"
+]
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = []
+test = [
+    "PyYAML",
+]
+
+[project.scripts]
+pyktool = "pyktool.main:main"
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+

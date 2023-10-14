@@ -1,0 +1,1 @@
+pyktool dump indefinite.p12 EJBCA_ADMIN_PASS

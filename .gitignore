@@ -1,0 +1,14 @@
+*.pyc
+*.pyr
+*~
+*.o
+/build
+/tmp
+__pycache__
+/dist
+/*egg-info
+
+src/legacy.py
+src/*.so
+python/pyktool/*.so
+

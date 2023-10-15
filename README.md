@@ -2,6 +2,8 @@
 
 A Python cli app like Java's  keytool
 
+The JKS code is from pyjks: https://github.com/kurtbrose/pyjks
+
 ## Usage
 
 * dump/undump keystores JKS, BKS, PKCS12 (BKS is a legacy format from BouncyCastle) to annotated PEM

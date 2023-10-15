@@ -2,6 +2,7 @@
 import logging
 import time
 from datetime import datetime, timezone
+
 import os
 
 from cryptography.hazmat.primitives.hmac import HMAC
@@ -92,8 +93,8 @@ class BCFKeyStore(jks.KeyStore):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._version = 1
-        self._creation_date = datetime.utcnow()
-        self._last_modified_date = datetime.utcnow()
+        self._creation_date = datetime.now(tz=timezone.utc)
+        self._last_modified_date = datetime.now(tz=timezone.utc)
 
     def _encrypted_data_handler(self, chunk):
         password = self._password

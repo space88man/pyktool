@@ -2,6 +2,34 @@
 
 A Python cli app like Java's  keytool
 
+## Usage
+
+* dump/undump keystores JKS, BKS, PKCS12 (BKS is a legacy format from BouncyCastle) to annotated PEM
+* the annotated PEM is fully compatible with OpenSSL/Botan/GnuTLS
+    * dump format is not specified ATM, dump a few keystores to see examples
+    * undumping - dump format can be round-tripped to keystore
+* (experimental) with a raw PEM file  (i.e. no annotations), if the certs/private key+cert chains
+     exist, `pyktool` will attempt to undump to keystore -
+     where you can specify the aliases you want. Use the store
+     type &ldquo;raw&rdquo; for this use case
+
+     It is always recommended to add annotations to the PEM file to avoid ambiguity
+
+*  store type is identified from suffix, or else prepend the filename with `(jks|bks|pem|p12|raw):`
+
+        pyktool dump (<prefix>:)<keystore> <storepass>
+        # cacerts from any JRE/JDK, it is JKS format but has no suffix
+        pyktool dump jks:cacerts changeit
+        # dump/undump - i.e. conversion
+        # convert from JKS to PKCS12
+        pyktool convert mykeystore.jks storepass-1 mykeystore.p12 storepass-2
+
+* (experimental) to avoid legacy ciphers, the pyktool can undump  with modern
+    PBES2 ciphers - ATM coded, working, but no docs. Check the source code.
+    PBES2 is correctly supported from JDK 8u301, JDK 11, JDK 17, JDK 21
+* (experimental) support for bcfks format (this is a newer format from BouncyCastle) that
+    uses modern ciphers
+
 ## Build
 
     # develop

@@ -95,7 +95,8 @@ class BKS(KeyStore):
         if ks._version == 2:
             # BKS uses hmac checksum
             compute_hmac = hmac_pkcs12_pbkdf(
-                password, salt, iteration_count, data[m_pos:-SHA_LENGTH]
+                password, salt, iteration_count, data[m_pos:-SHA_LENGTH],
+                legacy=True
             )
 
         if ks._version == 1:
@@ -228,7 +229,8 @@ class BKS(KeyStore):
 
         else:
             compute_hmac = hmac_pkcs12_pbkdf(
-                password, salt, iteration_count, output[m_pos:]
+                password, salt, iteration_count, output[m_pos:],
+                legacy=True
             )
             output += compute_hmac
 

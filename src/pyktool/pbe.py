@@ -109,7 +109,7 @@ hash_module = {
 }
 
 
-def hmac_pkcs12_pbkdf(password, salt, count, data, mac_data=None):
+def hmac_pkcs12_pbkdf(password, salt, count, data, mac_data=None, legacy=False):
     """
     Computes the PKCS12_PBKDF HMAC
 
@@ -120,7 +120,11 @@ def hmac_pkcs12_pbkdf(password, salt, count, data, mac_data=None):
     :param macData: if present, extract salt and count from here; ignores positional parameters
     :return: HMAC
     """
-    dotted = "1.3.14.3.2.26"
+
+    if legacy:
+        dotted = "1.3.14.3.2.26"
+    else:
+        dotted = "2.16.840.1.101.3.4.2.1"  # match Java 17+ defaults
     if mac_data:
         salt = mac_data["mac_salt"].native
         count = mac_data["iterations"].native

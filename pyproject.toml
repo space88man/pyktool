@@ -3,7 +3,7 @@ package-dir = "."
 
 [project]
 name = "pyktool"
-version = "23.10.4dev0"
+version = "24.0.0"
 description = "A Python project to inspect Java keystores"
 readme = "README.md"
 authors = [

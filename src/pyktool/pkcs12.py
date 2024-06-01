@@ -5,7 +5,7 @@ import hashlib
 from collections import namedtuple
 
 from asn1crypto import core, algos, pkcs12 as P12, cms, keys
-from .asn1_helper import id_pbeWithSha1AndDESede as DES3, id_aes128cbc as AES128
+from .asn1_helper import id_pbeWithSha1AndDESede as DES3, id_aes256cbc as AES256
 from .asn1_helper import *
 from .asn1_util import pbes2_algo_id
 
@@ -324,13 +324,13 @@ def build_ks(myks):
 def asn1_make_pkcs8_bag(k, password, kwargs={"driver": ""}):
     plaintext = k["der"]
     salt = os.urandom(16)
-    count = 2048
-    if kwargs and "pkcs12:pbes2-key" in kwargs.get("driver", ""):
+    count = 10000
+    if kwargs and "pkcs12:pkcs12-key" in kwargs.get("driver", ""):
+        cipher = pbe.PBECipher.new_v1(password, DES3, salt, count)
+    else:
         # PBES2 is support in JDK8u301
         iv = os.urandom(16)
-        cipher = pbe.PBECipher.new_v2(password, AES128, iv, salt, count, id_sha256)
-    else:
-        cipher = pbe.PBECipher.new_v1(password, DES3, salt, count)
+        cipher = pbe.PBECipher.new_v2(password, AES256, iv, salt, count, id_sha256)
 
     e_key = pkcs8.pkcs8_wrap(plaintext, cipher)
 
@@ -349,10 +349,10 @@ def asn1_make_pkcs8_bag(k, password, kwargs={"driver": ""}):
 def asn1_make_secret_bag(k, password):
     # plaintext = k['der']
     salt = os.urandom(16)
-    count = 2048
+    count = 10000
     # Use PBES2, not supported by Java keytool
     # iv = os.urandom(16)
-    # cipher  = pbe.PBECipher.new_v2(password, AES128, iv, salt, count, id_sha256)
+    # cipher  = pbe.PBECipher.new_v2(password, AES256, iv, salt, count, id_sha256)
 
     raw = SecretKeyInfo()
     raw["version"] = 0
@@ -491,19 +491,19 @@ def pkcs12_write_ks(myks, password):
         no_certs = True
 
     salt = os.urandom(16)
-    count = 2048
+    count = 10000
     if not no_certs:
         # Use PBES2, not supported by Java keytool
-        if "pkcs12:pbes2" in myks.class_args.get("driver", {}):
-            LOG.debug("Using PBES2 encryption")
-            iv = os.urandom(16)
-            algo = pbes2_algo_id(AES128, iv, salt, count, hash_oid=id_sha256)
-            ciphertext = pbe.PBECipher(password, algo_id=algo).encrypt(plaintext)
-        else:
+        if "pkcs12:pkcs12" in myks.class_args.get("driver", {}):
             LOG.debug("Using PKCS12 encryption")
             cipher = pbe.PBECipher.new_v1(password, DES3, salt, count)
             algo = cipher.algo_id
             ciphertext = cipher.encrypt(plaintext)
+        else:
+            LOG.debug("Using PBES2 encryption")
+            iv = os.urandom(16)
+            algo = pbes2_algo_id(AES256, iv, salt, count, hash_oid=id_sha256)
+            ciphertext = pbe.PBECipher(password, algo_id=algo).encrypt(plaintext)
 
         encrypted_content = cms.EncryptedContentInfo()
         encrypted_content["content_type"] = "data"
@@ -543,13 +543,13 @@ def pkcs12_write_ks(myks, password):
 
     mac_data = P12.MacData()
     salt = os.urandom(20)
-    count = 2048
+    count = 10000
     digest = pbe.hmac_pkcs12_pbkdf(password, salt, count, tbh_payload)
 
     d_info = algos.DigestInfo()
     d_info["digest"] = digest
     d_alg = algos.DigestAlgorithm()
-    d_alg["algorithm"] = "sha1"
+    d_alg["algorithm"] = "sha256"
     d_info["digest_algorithm"] = d_alg
 
     mac_data["mac"] = d_info

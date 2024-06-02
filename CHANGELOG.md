@@ -1,4 +1,6 @@
 # CHANGELOG
+* 24.0.0: update PKCS12 defaults to match Java 17+
+
 ## Changes
 * 20.1.x:
     * clean up
